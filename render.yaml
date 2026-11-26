@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: reaver-proxy
+    runtime: node
+    plan: free
+    buildCommand: node --version
+    startCommand: node src/server.ts
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "24.22.3"
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+      - key: PROXY_TOKENS
+        generateValue: true
+      - key: MAX_ACTIVE_PER_USER
+        value: "8"
+      - key: REQUESTS_PER_MINUTE
+        value: "3"
+      - key: MAX_BODY_BYTES
+        value: "33554432"
+      - key: OPENAI_MAX_INPUT_TOKENS
+        value: "100000"
+      - key: OPENAI_MAX_OUTPUT_TOKENS
+        value: "10000"
+      - key: ANTHROPIC_MAX_INPUT_TOKENS
+        value: "100000"
+      - key: ANTHROPIC_MAX_OUTPUT_TOKENS
+        value: "10000"
+      - key: ALLOWED_ORIGINS
+        fromService:
+          name: risu-chat
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: ADDITIONAL_ALLOWED_ORIGINS
+        value: "https://risuai.xyz"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    name: risu-chat
+    runtime: static
+    buildCommand: >-
+      git init .risu-source &&
+      cd .risu-source &&
+      git fetch --depth=1 https://github.com/kwaroran/RisuAI.git 4d87a70ffb325db84dd35cb1b76b31d7074da156 &&
+      git checkout --detach FETCH_HEAD &&
+      npx --yes --package=pnpm@11.28.10 -c 'NODE_ENV=development pnpm install --frozen-lockfile && pnpm run buildsite' &&
+      test -s dist/index.html
+    staticPublishPath: ./.risu-source/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "24.22.3"
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+      - key: VITE_RISU_LEGAL_CONFIGURED
+        sync: false

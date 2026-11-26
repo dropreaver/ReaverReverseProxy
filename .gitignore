@@ -1,0 +1,11 @@
+/API.txt
+/.env
+/.env.*
+!/.env.example
+/node_modules/
+/.risu-source/
+
+/logs/
+/troubleshoots/
+/response/
+*.env
